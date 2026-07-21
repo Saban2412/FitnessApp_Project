@@ -1,3 +1,4 @@
+namespace FitnessApp.Models;
 using System.ComponentModel.DataAnnotations;
 using FitnessApp.Models.Enums;
 public class Klijent : Osoba
@@ -7,10 +8,10 @@ public class Klijent : Osoba
     [Required] public DateTime DatumPocetka{get;set;} = DateTime.Now; 
 
     //VEZE
-    [Required] public int TrenerId {get;set;}
+    public int TrenerId {get;set;}
     public Trener? Trener {get;set;}
-    public ICollection<KlijentTrening> KlijentTreninzi = new List<KlijentTrening>();
-    public ICollection<ProgressRecord> ProgressZapisi = new List<ProgressRecord>();
+    public ICollection<KlijentTrening> KlijentTreninzi{get;set;} = new List<KlijentTrening>();
+    public ICollection<ProgressRecord> ProgressZapisi{get;set;} = new List<ProgressRecord>();
     //ENUM
     [Required] public Cilj Cilj{get;set;} = Cilj.Nepoznat;
 }

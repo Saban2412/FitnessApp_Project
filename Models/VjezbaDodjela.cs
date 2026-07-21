@@ -1,3 +1,4 @@
+namespace FitnessApp.Models;
 using System.ComponentModel.DataAnnotations;
 
 public class VjezbaDodjela
@@ -6,9 +7,12 @@ public class VjezbaDodjela
     public int? BrojSetova{get;set;}
     public int? BrojPonavljanja{get;set;}
     public int? TrajanjeSekundi{get;set;}
-    public bool JeVremenska{get;private set;} = false;
+    public int Redoslijed{get;set;}
 
     //VEZE
-    [Required] public int TreningId{get;set;}
-    [Required] public int VjezbaId{get;set;}
+    public int TreningId { get; set; }
+    public Trening? Trening { get; set; }
+
+    public int VjezbaId { get; set; }
+    public Vjezba? Vjezba { get; set; }
 }

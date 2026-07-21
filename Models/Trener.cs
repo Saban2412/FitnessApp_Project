@@ -1,4 +1,4 @@
-
+namespace FitnessApp.Models;
 using System.ComponentModel.DataAnnotations;
 
 public class Trener : Osoba
