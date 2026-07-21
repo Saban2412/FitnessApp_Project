@@ -1,12 +1,16 @@
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddOpenApi();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+
+app.UseSwaggerUI(options =>
 {
-    app.MapOpenApi();
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Task API v1");
+});
 
 app.UseHttpsRedirection();
 
@@ -92,7 +96,7 @@ app.MapDelete("/tasks/{id}",(int id) =>
    var task = tasks.FirstOrDefault(t=>t.Id==id);
 
    if(task is null){
-       return Results.BadRequest(new{
+       return Results.NotFound(new{
             error=$"Task with id {id} is not found"
             });
     }; 
