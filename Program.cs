@@ -33,6 +33,26 @@ app.MapGet("/tasks/{id}",(int id) =>
     return Results.Ok(task);
 });
 
+//CREATE
+app.MapPost("/tasks",(CreateTaskRequestDTO requestDTO) =>
+{
+    if (string.IsNullOrWhiteSpace(requestDTO.Title))
+    {
+        return Results.BadRequest(new
+        {
+            error = "Title is required!"
+        });
+    }
+    var newTask = new TaskItem
+    {
+        Id = tasks.Any() ? tasks.Max(t=>t.Id)+1 :1,
+        Title = requestDTO.Title,
+        Done = false
+    };
+    tasks.Add(newTask);
+    return Results.Created($"/tasks/{newTask.Id}",newTask);
+});
+
 app.Run();
 
 class TaskItem
@@ -40,4 +60,8 @@ class TaskItem
     public int Id{get;set;}
     public string Title{get;set;} = string.Empty;
     public bool Done{get;set;}
+}
+class CreateTaskRequestDTO
+{
+    public string? Title{get;set;}
 }
