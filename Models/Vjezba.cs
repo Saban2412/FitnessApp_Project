@@ -1,15 +1,17 @@
+namespace FitnessApp.Models;
 using System.ComponentModel.DataAnnotations;
 using FitnessApp.Models.Enums;
 using FitnessApp.Models;
 public class Vjezba
 {
     [Key] public int Id{get;set;}
-    [Required] public string Naziv{get;set;} = string.Empty;
-    public string? Opis {get;set;}
+    [Required,StringLength(100)] public string Naziv{get;set;} = string.Empty;
+    [StringLength(1000)]public string? Opis {get;set;}
 
     //ENUM
-    [Required] public Tezina Tezina {get;set;} = Tezina.Lako;
-    [Required] public Vrsta Vrsta {get;set;} = Vrsta.Zagrijavanje;
+    [Required] public TezinaVjezbe Tezina {get;set;} = TezinaVjezbe.Lako;
+    [Required] public VrstaVjezbe Vrsta {get;set;} = VrstaVjezbe.Zagrijavanje;
+    public bool JeVremenska{get;set;} = false;
 
-    //veza preko VjezbaMisic
+    public ICollection<VjezbaMisic> VjezbaMisici { get; set; } = new List<VjezbaMisic>();
 }
