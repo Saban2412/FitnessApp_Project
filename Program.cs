@@ -53,6 +53,52 @@ app.MapPost("/tasks",(CreateTaskRequestDTO requestDTO) =>
     return Results.Created($"/tasks/{newTask.Id}",newTask);
 });
 
+//UPDATE
+app.MapPut("/tasks/{id}",(int id, UpdateTaskRequestDTO requestDTO) =>
+{
+    var task = tasks.FirstOrDefault(t=>t.Id==id);
+    if(task is null)
+    {
+        return Results.NotFound(new
+        {
+            error = $"Task with id: {id} is not found!"
+        });
+    }
+    if(requestDTO.Title is null && requestDTO.Done is null)
+    {
+       return Results.BadRequest(new
+        {
+            error = "At least one filed must be provided!"
+        });
+    }
+    if(requestDTO.Title is not null)
+    {
+        if (string.IsNullOrWhiteSpace(requestDTO.Title))
+        {
+           return Results.BadRequest(new{error = "Title is required!"});
+        }
+        task.Title = requestDTO.Title;
+    }
+    if(requestDTO.Done is not null)
+    {
+        task.Done=requestDTO.Done.Value;
+    }
+    return Results.Ok(task);
+}).WithSummary("Update a task.");
+
+//DELETE
+app.MapDelete("/tasks/{id}",(int id) =>
+{
+   var task = tasks.FirstOrDefault(t=>t.Id==id);
+
+   if(task is null){
+       return Results.BadRequest(new{
+            error=$"Task with id {id} is not found"
+            });
+    }; 
+    tasks.Remove(task);
+    return Results.NoContent();
+}).WithSummary("Delete a task");
 app.Run();
 
 class TaskItem
@@ -64,4 +110,9 @@ class TaskItem
 class CreateTaskRequestDTO
 {
     public string? Title{get;set;}
+}
+class UpdateTaskRequestDTO
+{
+    public string? Title{get;set;}
+    public bool? Done{get;set;}
 }
