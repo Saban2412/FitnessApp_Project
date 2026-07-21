@@ -17,13 +17,21 @@ var tasks = new List<TaskItem>
     new TaskItem { Id = 3, Title = "Push project to GitHub", Done = false }
 };
 
-app.MapGet("/",()=>new{name = "Fitness App",version = "1.0", endpoints = new[]{"/tasks"}});
+//READ
+app.MapGet("/tasks",()=>tasks).WithSummary("Get all tasks");
 
-app.MapGet("/health", () => new
+app.MapGet("/tasks/{id}",(int id) =>
 {
-    status = "ok"
+    var task = tasks.FirstOrDefault(t=>t.Id==id);
+    if(task is null)
+    {
+        return Results.NotFound(new
+        {
+            error = $"Tast with id: {id} is not found!"
+        });
+    }
+    return Results.Ok(task);
 });
-
 
 app.Run();
 
