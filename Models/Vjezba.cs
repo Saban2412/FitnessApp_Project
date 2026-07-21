@@ -14,4 +14,6 @@ public class Vjezba
     public bool JeVremenska{get;set;} = false;
 
     public ICollection<VjezbaMisic> VjezbaMisici { get; set; } = new List<VjezbaMisic>();
+    public ICollection<SablonStavka> SablonStavke { get; set; } = new List<SablonStavka>();
+    public ICollection<VjezbaDodjela> VjezbaDodjele { get; set; } = new List<VjezbaDodjela>();
 }
