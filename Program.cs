@@ -1,4 +1,16 @@
+using System.Runtime.CompilerServices;
+using FitnessApp.Data;
+using FitnessApp.Models;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
+
+//di za dbcontext
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlite(connectionString));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -14,109 +26,49 @@ app.UseSwaggerUI(options =>
 
 app.UseHttpsRedirection();
 
-var tasks = new List<TaskItem>
-{
-    new TaskItem { Id = 1, Title = "Learn ASP.NET Core", Done = false },
-    new TaskItem { Id = 2, Title = "Build a Minimal API", Done = false },
-    new TaskItem { Id = 3, Title = "Push project to GitHub", Done = false }
-};
+//dataTest
 
-//READ
-app.MapGet("/tasks",()=>tasks).WithSummary("Get all tasks");
-
-app.MapGet("/tasks/{id}",(int id) =>
+app.MapPost("/data-test",async (ApplicationDbContext _db) =>
 {
-    var task = tasks.FirstOrDefault(t=>t.Id==id);
-    if(task is null)
-    {
-        return Results.NotFound(new
-        {
-            error = $"Tast with id: {id} is not found!"
-        });
-    }
-    return Results.Ok(task);
+    var trener = new Trener{
+        Ime = "Test-Trener", 
+        Prezime = "Test-Prezime", 
+        DatumRodjenja = new DateTime(2000,1,1),
+        Certifikat = "TEST-001"
+        };
+
+    _db.Treneri.Add(trener);
+    await _db.SaveChangesAsync();
+    return Results.Ok(trener);
 });
 
-//CREATE
-app.MapPost("/tasks",(CreateTaskRequestDTO requestDTO) =>
+app.MapPost("/client-test",async (ApplicationDbContext _db) =>
 {
-    if (string.IsNullOrWhiteSpace(requestDTO.Title))
+    var klijent = new Klijent
     {
-        return Results.BadRequest(new
-        {
-            error = "Title is required!"
-        });
-    }
-    var newTask = new TaskItem
-    {
-        Id = tasks.Any() ? tasks.Max(t=>t.Id)+1 :1,
-        Title = requestDTO.Title,
-        Done = false
+      Ime = "Test-Klijent",
+      Prezime = "Test-Prezime",
+      DatumRodjenja = new DateTime(2001,1,1),
+      KilazaPocetna = 100,
+      Visina = 190,
+      TrenerId = 1  
     };
-    tasks.Add(newTask);
-    return Results.Created($"/tasks/{newTask.Id}",newTask);
+
+    _db.Klijenti.Add(klijent);
+    await _db.SaveChangesAsync();
+    return Results.Ok(klijent);
 });
 
-//UPDATE
-app.MapPut("/tasks/{id}",(int id, UpdateTaskRequestDTO requestDTO) =>
+app.MapGet("/treneri/{id}", async (int id, ApplicationDbContext db) =>
 {
-    var task = tasks.FirstOrDefault(t=>t.Id==id);
-    if(task is null)
-    {
-        return Results.NotFound(new
-        {
-            error = $"Task with id: {id} is not found!"
-        });
-    }
-    if(requestDTO.Title is null && requestDTO.Done is null)
-    {
-       return Results.BadRequest(new
-        {
-            error = "At least one filed must be provided!"
-        });
-    }
-    if(requestDTO.Title is not null)
-    {
-        if (string.IsNullOrWhiteSpace(requestDTO.Title))
-        {
-           return Results.BadRequest(new{error = "Title is required!"});
-        }
-        task.Title = requestDTO.Title;
-    }
-    if(requestDTO.Done is not null)
-    {
-        task.Done=requestDTO.Done.Value;
-    }
-    return Results.Ok(task);
-}).WithSummary("Update a task.");
+    var trener = await db.Treneri
+        .Include(t => t.Klijenti)
+        .FirstOrDefaultAsync(t => t.Id == id);
 
-//DELETE
-app.MapDelete("/tasks/{id}",(int id) =>
-{
-   var task = tasks.FirstOrDefault(t=>t.Id==id);
+    return trener is null
+        ? Results.NotFound()
+        : Results.Ok(trener);
+});
 
-   if(task is null){
-       return Results.NotFound(new{
-            error=$"Task with id {id} is not found"
-            });
-    }; 
-    tasks.Remove(task);
-    return Results.NoContent();
-}).WithSummary("Delete a task");
 app.Run();
 
-class TaskItem
-{
-    public int Id{get;set;}
-    public string Title{get;set;} = string.Empty;
-    public bool Done{get;set;}
-}
-class CreateTaskRequestDTO
-{
-    public string? Title{get;set;}
-}
-class UpdateTaskRequestDTO
-{
-    public string? Title{get;set;}
-    public bool? Done{get;set;}
-}

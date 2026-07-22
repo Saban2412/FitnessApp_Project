@@ -1,107 +1,108 @@
-using AutoSkola.Models;
-using Microsoft.EntityFrameworkCore;
-
-namespace AutoSkola.Data;
-
-public class ApplicationDbContext:DbContext
+var tasks = new List<TaskItem>
 {
-    public DbSet<Instruktor> Instruktori { get; set; } = null!;
-    public DbSet<Vozilo> Vozila { get; set; } = null!;
+    new TaskItem { Id = 1, Title = "Learn ASP.NET Core", Done = false },
+    new TaskItem { Id = 2, Title = "Build a Minimal API", Done = false },
+    new TaskItem { Id = 3, Title = "Push project to GitHub", Done = false }
+};
 
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options){}
+//READ
+app.MapGet("/tasks",()=>tasks).WithSummary("Get all tasks");
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+app.MapGet("/tasks/{id}",(int id) =>
+{
+    var task = tasks.FirstOrDefault(t=>t.Id==id);
+    if(task is null)
     {
-        base.OnModelCreating(modelBuilder);
-
-        modelBuilder.Entity<Instruktor>(entity =>
+        return Results.NotFound(new
         {
-            entity.ToTable("Instruktori");
-            entity.HasKey(i => i.Id);
-            entity.HasIndex(i => i.BrojDozvole).IsUnique();
-            entity.Property(i => i.BrojDozvole).IsRequired().HasMaxLength(10);
-            entity.Property(i => i.Ime).IsRequired().HasMaxLength(20);
-            entity.Property(i => i.Prezime).IsRequired().HasMaxLength(25);
-        });
-        modelBuilder.Entity<Vozilo>(entity =>
-        {
-            entity.ToTable("Vozila");
-            entity.HasKey(v => v.Id);
-            entity.Property(v => v.Registracija).IsRequired();
-            entity.HasIndex(v => v.Registracija).IsUnique();
-            entity.Property(v => v.Marka).IsRequired().HasMaxLength(20);
-            entity.Property(v => v.Model).IsRequired().HasMaxLength(20);
-
-            entity.HasOne(v => v.Instruktor)
-                .WithMany(v=>v.Vozila)
-                .HasForeignKey(v => v.InstruktorId)
-                .OnDelete(DeleteBehavior.SetNull);
+            error = $"Tast with id: {id} is not found!"
         });
     }
-}
+    return Results.Ok(task);
+});
 
-
-
-
-
-using AutoSkola.Data; // ili AutoSkola.Data, prilagodi svom namespace-u
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
-
-namespace AutoSkola.Data;
-
-public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
+//CREATE
+app.MapPost("/tasks",(CreateTaskRequestDTO requestDTO) =>
 {
-    public ApplicationDbContext CreateDbContext(string[] args)
+    if (string.IsNullOrWhiteSpace(requestDTO.Title))
     {
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false)
-            .Build();
-
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
-
-        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseSqlite(connectionString);
-
-        return new ApplicationDbContext(optionsBuilder.Options);
+        return Results.BadRequest(new
+        {
+            error = "Title is required!"
+        });
     }
-}
+    var newTask = new TaskItem
+    {
+        Id = tasks.Any() ? tasks.Max(t=>t.Id)+1 :1,
+        Title = requestDTO.Title,
+        Done = false
+    };
+    tasks.Add(newTask);
+    return Results.Created($"/tasks/{newTask.Id}",newTask);
+});
 
-
-
+//UPDATE
+app.MapPut("/tasks/{id}",(int id, UpdateTaskRequestDTO requestDTO) =>
 {
-  "ConnectionStrings": {
-    "DefaultConnection": "Data Source=baza.db"
-  }
+    var task = tasks.FirstOrDefault(t=>t.Id==id);
+    if(task is null)
+    {
+        return Results.NotFound(new
+        {
+            error = $"Task with id: {id} is not found!"
+        });
+    }
+    if(requestDTO.Title is null && requestDTO.Done is null)
+    {
+       return Results.BadRequest(new
+        {
+            error = "At least one filed must be provided!"
+        });
+    }
+    if(requestDTO.Title is not null)
+    {
+        if (string.IsNullOrWhiteSpace(requestDTO.Title))
+        {
+           return Results.BadRequest(new{error = "Title is required!"});
+        }
+        task.Title = requestDTO.Title;
+    }
+    if(requestDTO.Done is not null)
+    {
+        task.Done=requestDTO.Done.Value;
+    }
+    return Results.Ok(task);
+}).WithSummary("Update a task.");
+
+//DELETE
+app.MapDelete("/tasks/{id}",(int id) =>
+{
+   var task = tasks.FirstOrDefault(t=>t.Id==id);
+
+   if(task is null){
+       return Results.NotFound(new{
+            error=$"Task with id {id} is not found"
+            });
+    }; 
+    tasks.Remove(task);
+    return Results.NoContent();
+}).WithSummary("Delete a task");
+
+
+
+
+class TaskItem
+{
+    public int Id{get;set;}
+    public string Title{get;set;} = string.Empty;
+    public bool Done{get;set;}
 }
-
-
-using AutoSkola.Data;
-using AutoSkola.Models;
-using AutoSkola.Repositories;
-using AutoSkola.Services;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional:false)
-    .Build();
-
-var services=new ServiceCollection();
-var connectionString =configuration.GetConnectionString("DefaultConnection");
-services.AddDbContext<ApplicationDbContext>(options =>options.UseSqlite(connectionString));
-
-services.AddScoped<IInstruktorRepository,InstruktorRepository>();
-services.AddScoped<IVoziloRepository,VoziloRepository>();
-services.AddScoped<IAutoskolaService,AutoskolaService>();
-
-var provider = services.BuildServiceProvider();
-
-var db=provider.GetRequiredService<ApplicationDbContext>();
-await db.Database.EnsureCreatedAsync();
-
-var app = provider.GetRequiredService<IAutoskolaService>();
+class CreateTaskRequestDTO
+{
+    public string? Title{get;set;}
+}
+class UpdateTaskRequestDTO
+{
+    public string? Title{get;set;}
+    public bool? Done{get;set;}
+}
